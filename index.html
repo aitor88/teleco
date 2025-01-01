@@ -1,1 +1,158 @@
-index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signal Flow: Red en Caos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #1e1e2f;
+            color: white;
+        }
+        canvas {
+            border: 2px solid white;
+            background-color: #2e2e4e;
+            display: block;
+        }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #info p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <p><strong>Energía Restante:</strong> <span id="energy">100</span></p>
+        <p><strong>Objetivo:</strong> Conecta el nodo Fuente al nodo Destino.</p>
+    </div>
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Nodos y conexiones
+        const nodes = [
+            { id: 0, x: 100, y: 200, active: true }, // Nodo Fuente
+            { id: 1, x: 250, y: 100, active: false },
+            { id: 2, x: 250, y: 300, active: false },
+            { id: 3, x: 450, y: 200, active: false }, // Nodo Destino
+        ];
+
+        const connections = [
+            { from: 0, to: 1, cost: 20 },
+            { from: 0, to: 2, cost: 30 },
+            { from: 1, to: 3, cost: 40 },
+            { from: 2, to: 3, cost: 10 },
+        ];
+
+        let energy = 100;
+        let currentPath = [];
+
+        // Dibuja los nodos
+        function drawNodes() {
+            nodes.forEach(node => {
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, 20, 0, Math.PI * 2);
+                ctx.fillStyle = node.active ? "green" : "red";
+                ctx.fill();
+                ctx.strokeStyle = "white";
+                ctx.stroke();
+                ctx.closePath();
+            });
+        }
+
+        // Dibuja las conexiones
+        function drawConnections() {
+            connections.forEach(connection => {
+                const fromNode = nodes.find(n => n.id === connection.from);
+                const toNode = nodes.find(n => n.id === connection.to);
+                ctx.beginPath();
+                ctx.moveTo(fromNode.x, fromNode.y);
+                ctx.lineTo(toNode.x, toNode.y);
+                ctx.strokeStyle = "white";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.closePath();
+            });
+        }
+
+        // Verifica clics en los nodos
+        canvas.addEventListener("click", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            nodes.forEach(node => {
+                const dx = mouseX - node.x;
+                const dy = mouseY - node.y;
+                if (Math.sqrt(dx * dx + dy * dy) < 20) {
+                    handleNodeClick(node);
+                }
+            });
+        });
+
+        // Maneja la lógica de clic en los nodos
+        function handleNodeClick(node) {
+            if (currentPath.length === 0 && node.id === 0) {
+                currentPath.push(node);
+                node.active = true;
+                redraw();
+            } else if (currentPath.length > 0) {
+                const lastNode = currentPath[currentPath.length - 1];
+                const connection = connections.find(c => c.from === lastNode.id && c.to === node.id);
+
+                if (connection && energy >= connection.cost) {
+                    energy -= connection.cost;
+                    currentPath.push(node);
+                    node.active = true;
+                    document.getElementById("energy").innerText = energy;
+                    checkWinCondition();
+                    redraw();
+                }
+            }
+        }
+
+        // Verifica si el jugador ha ganado
+        function checkWinCondition() {
+            if (currentPath.some(node => node.id === 3)) {
+                alert("¡Has restaurado la señal correctamente!");
+                resetGame();
+            }
+        }
+
+        // Reinicia el juego
+        function resetGame() {
+            energy = 100;
+            currentPath = [];
+            nodes.forEach(node => node.active = node.id === 0);
+            document.getElementById("energy").innerText = energy;
+            redraw();
+        }
+
+        // Redibuja el canvas
+        function redraw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawConnections();
+            drawNodes();
+        }
+
+        // Inicia el juego
+        redraw();
+    </script>
+</body>
+</html>
